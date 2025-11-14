@@ -1,13 +1,15 @@
 // Service Worker da Calculadora Leonor
 
-const CACHE_NAME = 'leonor-cache-v1';
+// Atualizamos o nome da cache para forçar a atualização do Service Worker
+const CACHE_NAME = 'leonor-cache-v2';
 
-// Ficheiros a colocar em cache para funcionamento offline
+// Lista de ficheiros a colocar em cache. Usamos caminhos relativos para que funcione
+// independentemente do subdiretório em que a app está alojada.
 const FILES_TO_CACHE = [
-  '/Leonor-CalculadoraHC/',
-  '/Leonor-CalculadoraHC/index.html',
-  '/Leonor-CalculadoraHC/manifest.json',
-  '/Leonor-CalculadoraHC/icon-512.png'
+  './',
+  './index.html',
+  './manifest.json',
+  './icon-512.png'
 ];
 
 // Instalação: adiciona ficheiros ao cache
@@ -20,21 +22,25 @@ self.addEventListener('install', event => {
 // Ativação: limpa caches antigos
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(
-        keys
-          .filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
-      );
-    })
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))
+    )
   );
 });
 
-// Intercetador de pedidos: responde com cache primeiro, se existir
+// Intercetador de pedidos: responde com cache ou rede conforme o tipo de pedido
 self.addEventListener('fetch', event => {
+  // Para pedidos de navegação (páginas HTML), tenta a rede primeiro
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('./index.html'))
+    );
+    return;
+  }
+  // Para outros pedidos (CSS, JS, imagens), usa cache-first
   event.respondWith(
-    caches.match(event.request).then(response => {
-      return response || fetch(event.request);
-    })
+    caches.match(event.request).then(response => response || fetch(event.request))
   );
+});
+
 });

@@ -2,7 +2,7 @@
   "name": "Calculadora Leonor",
   "short_name": "Leonor HC",
   "start_url": "/Leonor-CalculadoraHC-v3/index.html",
-  "scope": "/Leonor-CalculadoraHC-v#/",
+  "scope": "/Leonor-CalculadoraHC-v3/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",

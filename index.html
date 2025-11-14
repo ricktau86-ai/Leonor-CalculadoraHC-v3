@@ -430,19 +430,75 @@
         });
 
         // --- Guardar / carregar plano no localStorage ---
-        const STORAGE_KEY = 'leonorInsulinPlan_v1';
+        Importar / Exportar plano (com proteção localStorage)
+   ============================================================ */
 
-        function loadPlan() {
-            scheduleBody.innerHTML = '';
-            let saved = null;
-            try {
-                saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-            } catch (e) {
-                saved = null;
-            }
-            if (Array.isArray(saved) && saved.length > 0) {
-                saved.forEach(row => addRow(row));
+function setupImportExport() {
+    const btnExport = $('export-plan');
+    const btnImport = $('import-plan');
+    const inputFile = $('import-file');
+
+    if (btnExport) {
+        btnExport.addEventListener('click', () => {
+            let planStr = null;
+
+            // Tenta obter a partir do storage; se falhar, exporta o plano da tabela
+            const stored = safeGetItem(STORAGE_KEY);
+            if (stored) {
+                planStr = stored;
             } else {
+                const plan = collectPlanFromTable();
+                planStr = JSON.stringify(plan || []);
+            }
+
+            const blob = new Blob([planStr || '[]'], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'plano_leonor.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    }
+
+    if (btnImport && inputFile) {
+        btnImport.addEventListener('click', () => {
+            inputFile.click();
+        });
+
+        inputFile.addEventListener('change', (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = e.target.result;
+                    const importedPlan = JSON.parse(data);
+                    if (!Array.isArray(importedPlan)) {
+                        alert('Ficheiro inválido: formato inesperado.');
+                        return;
+                    }
+
+                    currentPlan = importedPlan;
+                    renderPlanTable(currentPlan);
+
+                    // Tentar gravar no storage, mas sem rebentar se estiver bloqueado
+                    safeSetItem(STORAGE_KEY, JSON.stringify(currentPlan));
+
+                    showStatus('Plano importado com sucesso ✅');
+                } catch (err) {
+                    console.error(err);
+                    alert('Erro ao ler o ficheiro: formato inválido.');
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
+}
+
                 // caso não haja plano, adiciona algumas linhas vazias genéricas
                 addRow({ start: '00:00', end: '07:00', ih: '', fsi: '', target: '' });
                 addRow({ start: '07:00', end: '10:00', ih: '', fsi: '', target: '' });
